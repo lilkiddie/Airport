@@ -1,3 +1,4 @@
-flight number,company,departure date,arrival date,aircraft model,aircraft type,status
+flight_number,company,departure_date,arrival_date,aircraft_model,aircraft_type,status
 S-0712,S7,2024-01-01 12:00:00,2024-01-01 13:30:00,Boeing-737,medium,
-A-0712,A7,2024-01-01 12:00:00,2024-01-01 13:45:00,Boeing-737,medium,
+S-1712,A7,2024-01-01 12:00:00,2024-01-01 13:45:00,Boeing-737,medium,
+S-1312,Runway,2024-01-01 12:13:00,2024-01-01 13:50:00,Boeing-777,heavy,

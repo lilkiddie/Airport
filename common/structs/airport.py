@@ -1,6 +1,8 @@
 import enum
 from datetime import datetime
+from functools import cached_property
 from dataclasses import dataclass
+from .message_queue import Request, Response
 
 
 class RunwayType(enum.Enum):
@@ -24,15 +26,13 @@ class AircraftType(enum.Enum):
 class Runway:
     id: int
     type: RunwayType
+    is_free: str = None
 
 
 @dataclass
 class Aircraft:
     name: str
     type: AircraftType
-
-    def send_request(message, queue):
-        queue.push(message)
 
 
 @dataclass
@@ -46,15 +46,7 @@ class Flight:
 
 @dataclass
 class FlightBoard:
-    flights: list[Flight]
-
-    @classmethod
-    def read_csv(cls, file_path, sep=','):
-        with open(file_path) as file:
-            _ = file.readline()
-            return cls(
-                flights=[Flight(*line) for line in file.readlines()]
-            )
+    flights: dict[str, Flight]
 
 
 @dataclass
@@ -62,8 +54,30 @@ class ControlRoom:
     flight_board: FlightBoard
     runways: list[Runway]
 
-    def process_request():
-        pass
+    @cached_property
+    def land_runways(self):
+        return [runway for runway in self.runways if runway.type == RunwayType.land]
+
+    @cached_property
+    def take_off_runways(self):
+        return [runway for runway in self.runways if runway.type == RunwayType.take_off]
+
+    @property
+    def landing_delay(self):
+        return 15
+        
+    def __call__(self, request: Request):
+        free_runway = self.get_free_runway()
+        flight_number, status, delay = request.flight_number, None, 0
+        if free_runway is None:
+            status = FlightStatus.delayed
+            delay = self.landing_delay
+        else:
+            free_runway.is_free = flight_number
+            status = FlightStatus.landing
+        response = Response(flight_number, status, delay)
+
+        return response
 
 
 @dataclass
