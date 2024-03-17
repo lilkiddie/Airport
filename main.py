@@ -1,21 +1,29 @@
-import pygame
 # from common.structs.row_struct import Row
-from common.structs.message_queue import MessageQueue, Request
-from common.structs.airport import ControlRoom, Runway, RunwayType
+from common.structs.airport import Airport
 from utils.flight_board import get_flight_boards_from_csv
+from random import choices, randint
+import pprint
 
-N_RUNWAYS = 10
-
-queue = MessageQueue()
-flight_board = get_flight_boards_from_csv('test.csv', sep=',')
-runways = [Runway(id, RunwayType.land) for id in range(1, N_RUNWAYS)]
-control_room = ControlRoom(flight_board, runways=runways)
-aircrafts = [flight.aircraft for flight in flight_board.flights.values()]
+N_RUNWAYS = 1
 
 
-queue.put_message(Request(flight_board.flights['S-0712'], RunwayType.land))
+class Experiment:
+    def __init__(self, filepath: str, airport_name: str = 'Test', n_runways: int = 5):
+        flight_board, aircrafts = get_flight_boards_from_csv(filepath)
+        self.airport = Airport(airport_name, flight_board, aircrafts, n_runways)
+        self._ticks = 0
+        self._history = []
+
+    def __call__(self):
+        print(f'{self.__class__.__name__} ticks')
+        self.airport()
+        self._ticks += 1
 
 
-while True:
-    while request:=queue.get_message() is not None:
-        control_room(request)
+# experiment = Experiment('test.csv',  N_RUNWAYS)
+
+# pprint.pprint(experiment.airport.flight_board.flights)
+# print()
+
+
+# experiment()
