@@ -112,7 +112,6 @@ class Runway:
 @dataclass
 class FlightBoard:
     flights: dict[str, 'Flight']
-    _ticks: int = 0
 
     def get(self, key, default=None):
         return self.flights.get(key, default)

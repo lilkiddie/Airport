@@ -20,10 +20,10 @@ class Experiment:
         self._ticks += 1
 
 
-# experiment = Experiment('test.csv',  N_RUNWAYS)
+experiment = Experiment('test.csv', 'test', N_RUNWAYS)
 
-# pprint.pprint(experiment.airport.flight_board.flights)
-# print()
+pprint.pprint(experiment.airport.flight_board.flights)
+print()
 
 
-# experiment()
+experiment()
