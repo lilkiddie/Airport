@@ -6,18 +6,15 @@ from utils.converters import aircraft_type_to_ticks
 class Queue:
     def __init__(self, maxlen=100):
         self.queue = deque(maxlen=maxlen)
-        self.ticks = 0
 
     def __len__(self):
         return len(self.queue)
 
     def append(self, value):
         self.queue.append(value)
-        self.ticks += aircraft_type_to_ticks.forward(value.type)
     
     def pop(self):
         value = self.queue.popleft()
-        self.ticks -= aircraft_type_to_ticks.forward(value.type)
         return value
     
     def top(self):

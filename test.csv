@@ -1,3 +1,9 @@
-flight_number,company,date,aircraft_model,aircraft_type,status,type
-S-0712,S7,2024-01-01 00:00:11,Boeing-737,medium,,landing,
-S-1712,A7,2024-01-01 00:00:14,Boeing-737,medium,,take off,
+flight_number,date,status,type
+S-01,19:20,Задержан,Взлет
+S-02,19:35,Задержан,Взлет
+S-03,19:37,Ок,Посадка
+S-04,19:40,Задержан,Посадка
+S-05,19:42,В процессе,Взлет
+S-06,19:51,В процессе,Посадка
+S-07,19:57,В процессе,Посадка
+S-08,20:57,В процессе,Взлет
