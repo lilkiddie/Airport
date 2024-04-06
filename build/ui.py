@@ -2,9 +2,9 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import Tk
 from PIL import ImageTk, Image
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
+from utils.converters import ticks_to_time
 
 
 class RowFrame(tk.Frame):
@@ -93,7 +93,8 @@ class StatsFrame(BoxFrame):
     def __init__(self, runways, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._items = ('Среднее отклонение', 'Очереди')
-        self._value = tk.StringVar(value=self._items[0])
+        self._value = tk.StringVar(value=self._items[1])
+        self.runways = runways
         self.combobox= ttk.Combobox(
             self.top_frame,
             textvariable=self._value,
@@ -103,33 +104,52 @@ class StatsFrame(BoxFrame):
             state="readonly",
             justify='center'
         )
+        self.combobox.bind('<<ComboboxSelected>>', self.combobox_handler)
         self.stats = {}
-        self.stats['queue'] = self.get_queue_stats_widget(runways)
+        self.stats['queue'] = self.get_queue_stats_widget()
+    
+    def combobox_handler(self, *args):
+        match self._value.get():
+            case 'Очереди':
+                plt.close()
+                self.stats['Очереди'].place_forget()
+                self.stats['Очереди'] = self.get_queue_stats_widget()
+                self.stats['Очереди'].place(width=274, height=219, x=41, y=93)
+
+    def place_stats(self):
+        match self._value.get():
+            case 'Очереди':
+                self.stats['Очереди'] = self.get_queue_stats_widget()
+                self.stats['Очереди'].place(width=274, height=219, x=41, y=93)
+
+    def place_stats_forget(self):
+        plt.close()
+        match self._value.get():
+            case 'Очереди':
+                self.stats['Очереди'].place_forget()
 
     def place(self, *args, **kwargs):
         super().place(*args, **kwargs)
         self.combobox.place(x=198, y=16, width=139, height=37)
-        self.stats['queue'].place(width=274, height=219, x=41, y=93)
+        self.place_stats()
     
     def place_forget(self, *args, **kwargs):
+        plt.close()
         self.combobox.place_forget()
-        self.stats['queue'].place_forget()
-        return super().place_forget(*args, **kwargs)
+        self.place_stats_forget()
+        super().place_forget(*args, **kwargs)
     
-    def get_queue_stats_widget(self, runways):
+    def get_queue_stats_widget(self):
         fig = plt.figure(figsize=(2.5, 2.2), facecolor='#C7C4C4')
         ax = fig.add_subplot()
         ax.set_title('Состояние очередей')
-        ax.set_xlabel('Кол-во очередей')
-        ax.set_ylabel('Текущий размер очереди')
-        ax.set_xticks(range(1, len(runways) + 1))
+        ax.set_xticks(range(1, len(self.runways) + 1))
         ax.set_yticks(range(1, 8))
         plt.ylim(0,7)
-        x = list(range(1, len(runways) + 1))
-        y = [len(runway) for runway in runways]
+        x = list(range(1, len(self.runways) + 1))
+        y = [len(runway) for runway in self.runways]
         plt.bar(x, y, color='#000000')
         canvas = FigureCanvasTkAgg(figure=fig, master=self)
-        canvas.draw()
         return canvas.get_tk_widget()
 
     def get_delay_stats_widget(self):
@@ -152,13 +172,12 @@ class FlightBoardFrame(BoxFrame):
         super().__init__(*args, **kwargs)
         FlightBoardFrame.DATA = data
         FlightBoardFrame.MAX_PAGES = len(self.DATA) // 3 + int(len(self.DATA) % 3 != 0)
-        # self.pages = [PageFrame(data=self.DATA[3 * i:3 * i + 3], master=self, background='#C7C4C4') for i in range(self.MAX_PAGES)]
         self.page_idx = 0
         self.page = PageFrame(data=self.DATA[3 * self.page_idx : 3 * self.page_idx + 3], master=self, background='#C7C4C4')
         self.image_forward = tk.PhotoImage(file='build/assets/next.png')
         self.image_backward = tk.PhotoImage(file='build/assets/back.png')
-        self.next = tk.Button(self, image=self.image_forward, command=lambda: self._next(), background='#C7C4C4')
-        self.prev = tk.Button(self, image=self.image_backward, command=lambda: self._prev(), background='#C7C4C4')
+        self.next = tk.Button(self, image=self.image_forward, command=self._next, background='#C7C4C4')
+        self.prev = tk.Button(self, image=self.image_backward, command=self._prev, background='#C7C4C4')
     
     def _next(self):
         if self.page_idx == self.MAX_PAGES - 1:
@@ -215,10 +234,10 @@ class GUI(Tk):
             font='Regular 24 bold',
             background='#999999'
         )
-        self.time_var = tk.IntVar(self, value=self.experiment.ticks)
+        self.time_var = tk.IntVar(self, value=ticks_to_time(self.experiment.ticks))
         self.time = tk.Label(
             self.top_frame,
-            text='19:15',
+            text=self.time_var,
             textvariable=self.time_var,
             background='#C4BFBF',
             font='Inter 16 bold',
@@ -241,16 +260,16 @@ class GUI(Tk):
             self,
             image=self.button_img,
             background='#D9D9D9',
-            command=lambda: self.tick()
+            command=self.tick
         )
         self.make_label = tk.Label(self.make, text='Сделать шаг', font='Regular 7')
 
     def tick(self):
-        self.experiment()
         plt.close()
-        self.box_right.stats['queue'].place_forget()
-        self.box_right.stats['queue'] = self.box_right.get_queue_stats_widget(self.experiment.handler.runways)
-        self.box_right.stats['queue'].place(width=274, height=219, x=41, y=93)
+        self.experiment()
+        self.time_var.set(ticks_to_time(self.experiment.ticks))
+        self.box_right.place_stats_forget()
+        self.box_right.place_stats()
 
     def on_exit(self):
         plt.close()

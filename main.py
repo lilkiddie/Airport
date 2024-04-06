@@ -1,5 +1,6 @@
 from common.structs.airport import Experiment
 from build.ui import GUI
+import matplotlib.pyplot as plt
 
 
 N_RUNWAYS = 3
