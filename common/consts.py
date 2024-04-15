@@ -1,24 +1,20 @@
 import enum
 
 __all__ =  [
+    'FILEPATH',
+    'TIME_TO_LAND',
     'FlightType',
     'FlightStatus',
     'AircraftType',
 ]
 
 
-class FlightType(enum.Enum):
-    landing = 1
-    take_off = 2
+TIME_TO_LAND = 10
+FILEPATH = 'test.csv'
 
-    @classmethod
-    def from_str(cls, value):
-        match(value):
-            case 'landing':
-                return cls.landing
-            case 'take off':
-                return cls.take_off
-        return None
+class FlightType(enum.Enum):
+    landing = 'Посадка'
+    take_off = 'Вылет'
 
 
 class FlightStatus(enum.Enum):
@@ -33,3 +29,9 @@ class AircraftType(enum.Enum):
     small = 'small'
     medium = 'medium'
     heavy = 'heavy'
+
+class StatsKey(enum.Enum):
+    avg_delay = 'Среднее отклонение от расписания'
+    max_delay = 'Максимальная задержка'
+    max_length = 'Максимальная длина очереди'
+    avg_length = 'Cредняя длина очереди'

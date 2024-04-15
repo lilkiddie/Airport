@@ -5,75 +5,65 @@ from PIL import ImageTk, Image
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 from utils.converters import ticks_to_time
+from common.structs.airport import Experiment
+from collections import namedtuple
 
 
 class RowFrame(tk.Frame):
-    COLOURS = {
-        'Задержан': 'red',
-        'Ок': 'green',
-        'В процессе': 'orange'
-    }
-
-    def __init__(self, data, *args, **kwargs):
+    def __init__(self, data, font, width=274, height=73, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rowconfigure((0, 1), weight=1, uniform='a')
-        self.columnconfigure((0, 1, 2, 3), weight=1, uniform='a')
+        self.height = height
+        self.width = width
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1, uniform='a')
+        self.columnconfigure(1, weight=1, uniform='a')
+        self.columnconfigure(2, weight=1, uniform='a')
+        self.columnconfigure(3, weight=3, uniform='a')
+        flight_number, type, status, time = data.number, data.type, data.status, data.date
+        self.flight_number = tk.Label(self, text=flight_number, background='#BDBABA', font=font)
+        self.type = tk.Label(self, text=type, background='#BDBABA', font=font)
+        self.status = tk.Label(self, text=status, background='#BDBABA', font=font)
+        self.time = tk.Label(self, text=time, background='#BDBABA', font=font)
 
-        if data is not None:
-            font = 'Inter 9'
-            flight, type, status, time = data.number, data.type, data.status, data.date
-            self.flight_number = tk.Label(self, text='Рейс', background='#ADADAD', font=font)
-            self.flight_number_ = tk.Label(self, text=flight, background='#ADADAD', font=font)
-        
-            self.type = tk.Label(self, text='Тип', background='#ADADAD', font=font)
-            self.type_ = tk.Label(self, text=type, background='#ADADAD', font=font)
+    def place(self, *args, **kwargs):
+        super().place(*args, width=self.width, height=self.height, **kwargs)
+        self.flight_number.grid(row=0, column=0, sticky='nsew')
+        self.time.grid(row=0, column=1, sticky='nsew')
+        self.type.grid(row=0, column=2, sticky='nsew')
+        self.status.grid(row=0, column=3, sticky='nsew')
 
-            self.status = tk.Label(self, text='Статус', background='#ADADAD', font=font)
-            self.status_ = tk.Label(self, text=status, fg=self.COLOURS[status], background='#ADADAD', font=font)
-
-            self.time = tk.Label(self, text='Время', background='#ADADAD', font=font)
-            self.time_ = tk.Label(self, text=time, background='#ADADAD', font=font)
-
-    def grid(self, *args, **kwargs):
-        super().grid(*args, **kwargs)
-        self.flight_number.grid(row=0, column=0, sticky='nwse')
-        self.type.grid(row=0, column=1, sticky='nwse')
-        self.status.grid(row=0, column=2, sticky='nwse')
-        self.time.grid(row=0, column=3, sticky='nwse')
-
-        self.flight_number_.grid(row=1, column=0, sticky='nwse')
-        self.type_.grid(row=1, column=1, sticky='nwse')
-        self.status_.grid(row=1, column=2, sticky='nwse')
-        self.time_.grid(row=1, column=3, sticky='nwse')
-    
-    def grid_forget(self, *args, **kwargs):
+    def place_forget(self, *args, **kwargs):
         self.flight_number.grid_forget()
         self.type.grid_forget()
         self.status.grid_forget()
         self.time.grid_forget()
-
-        self.flight_number_.grid_forget()
-        self.type_.grid_forget()
-        self.status_.grid_forget()
-        self.time_.grid_forget()
-        super().grid_forget(*args, **kwargs)
+        super().place_forget(*args, **kwargs)
 
 
 class PageFrame(tk.Frame):
     def __init__(self, data, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.rowconfigure((0, 1, 2), weight=1, uniform='b')
-        self.columnconfigure(0, weight=1, uniform='b')
-        self.rows = [RowFrame(master=self, data=data[idx], background='green') for idx in range(len(data))]
+        self.rowconfigure((0, 1, 2), weight=1)
+        self.columnconfigure(0, weight=1)
+        self.headers = RowFrame(
+            master=self,
+            data=namedtuple('data', ('number', 'type', 'status', 'date'))('Рейс', 'Тип', 'Статус', 'Время'),
+            height=24,
+            font='Inter 8 bold',
+            background='#BDBABA'
+        )
+        self.rows = [RowFrame(master=self, data=data[idx], height=39, font='Inter 8', background='#BDBABA') for idx in range(len(data))]
     
     def place(self, *args, **kwargs):
-        super().place(*args, **kwargs)
+        super().place(*args, width=274, height=220, **kwargs)
+        self.headers.place(x=0, y=0)
         for idx, row in enumerate(self.rows):
-            row.grid(column=0, row=idx, padx=5, pady=10)
-
+            row.place(x=0, y=self.headers.height + row.height * idx)
+    
     def place_forget(self, *args, **kwargs):
-        for idx, row in enumerate(self.rows):
-            row.grid_forget()
+        for row in self.rows:
+            row.place_forget()
+        self.headers.place_forget()
         super().place_forget(*args, **kwargs)
 
 
@@ -89,12 +79,33 @@ class BoxFrame(tk.Frame):
         self.top_label.place(width=101, height=20, x=37, y=24)
 
 
-class StatsFrame(BoxFrame):
-    def __init__(self, runways, *args, **kwargs):
+class StatsRow(tk.Frame):
+    def __init__(self, data, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._items = ('Среднее отклонение', 'Очереди')
+        self.data = [(tk.Label(self, text=d[0], font='Inter 8', background='#BDBABA'), tk.Label(self, text=d[1], font='Inter 8', background='#BDBABA')) for d in data]
+        self.rowconfigure(tuple(range(len(data))), weight=1)
+        self.columnconfigure((0, 1), weight=1)
+
+    def place(self, *args, **kwargs):
+        super().place(*args, **kwargs)
+        for row, d in enumerate(self.data):
+            d[0].grid(row=row, column=0)
+            d[1].grid(row=row, column=1)
+
+    def place_forget(self, *args, **kwargs):
+        for d in self.data[::-1]:
+            d[0].grid_forget()
+            d[1].grid_forget()
+        super().place_forget(*args, **kwargs)
+
+
+class StatsFrame(BoxFrame):
+    def __init__(self, experiment, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._items = ('Численная статистика', 'Очереди')
         self._value = tk.StringVar(value=self._items[1])
-        self.runways = runways
+        self.runways = experiment.handler.runways
+        self.statistics = experiment.stats
         self.combobox= ttk.Combobox(
             self.top_frame,
             textvariable=self._value,
@@ -106,39 +117,16 @@ class StatsFrame(BoxFrame):
         )
         self.combobox.bind('<<ComboboxSelected>>', self.combobox_handler)
         self.stats = {}
-        self.stats['queue'] = self.get_queue_stats_widget()
-    
-    def combobox_handler(self, *args):
-        match self._value.get():
-            case 'Очереди':
-                plt.close()
-                self.stats['Очереди'].place_forget()
-                self.stats['Очереди'] = self.get_queue_stats_widget()
-                self.stats['Очереди'].place(width=274, height=219, x=41, y=93)
 
-    def place_stats(self):
-        match self._value.get():
+    def get_widget(self):
+        value = self._value.get()
+        # print(value)
+        match value:
             case 'Очереди':
-                self.stats['Очереди'] = self.get_queue_stats_widget()
-                self.stats['Очереди'].place(width=274, height=219, x=41, y=93)
+                self.stats[value] = self.get_queue_stats_widget()
+            case 'Численная статистика':
+                self.stats[value] = self.get_delay_stats_widget()
 
-    def place_stats_forget(self):
-        plt.close()
-        match self._value.get():
-            case 'Очереди':
-                self.stats['Очереди'].place_forget()
-
-    def place(self, *args, **kwargs):
-        super().place(*args, **kwargs)
-        self.combobox.place(x=198, y=16, width=139, height=37)
-        self.place_stats()
-    
-    def place_forget(self, *args, **kwargs):
-        plt.close()
-        self.combobox.place_forget()
-        self.place_stats_forget()
-        super().place_forget(*args, **kwargs)
-    
     def get_queue_stats_widget(self):
         fig = plt.figure(figsize=(2.5, 2.2), facecolor='#C7C4C4')
         ax = fig.add_subplot()
@@ -153,74 +141,82 @@ class StatsFrame(BoxFrame):
         return canvas.get_tk_widget()
 
     def get_delay_stats_widget(self):
-        pass
+        data = [(key.value, value[-1] if value else 0) for key, value in self.statistics.items()]
+        return StatsRow(master=self, data=data, background='#BDBABA')        
+
+    def combobox_handler(self, _):
+        self.place_stats()
+
+    def place_stats(self):
+        plt.close('all')
+        self.get_widget()
+        self.stats[self._value.get()].place(width=274, height=219, x=41, y=93)
+
+    def place_stats_forget(self):
+        value = self._value.get()
+        self.stats[value].place_forget()
+
+    def place(self, *args, **kwargs):
+        super().place(*args, **kwargs)
+        self.combobox.place(x=198, y=16, width=139, height=37)
+        self.place_stats()
+
+    def place_forget(self, *args, **kwargs):
+        self.place_stats_forget()
+        self.combobox.place_forget()
+        super().place_forget(*args, **kwargs)
 
 
 class FlightBoardFrame(BoxFrame):
-    DATA = [
-        ('S-01', 'Взлет', 'Задержан', '19:20'),
-        ('S-02', 'Взлет', 'Задержан', '19:35'),
-        ('S-03', 'Посадка', 'Ок', '19:37'),
-        ('S-04', 'Посадка', 'Задержан', '19:40'),
-        ('S-05', 'Взлет', 'В процессе', '19:42'),
-        ('S-06', 'Посадка', 'В процессе', '19:51'),
-        ('S-07', 'Посадка', 'В процессе', '19:52'),
-    ]
-    MAX_PAGES = len(DATA) // 3 + int(len(DATA) % 3 != 0)
+    PAGE_SIZE = 5
 
-    def __init__(self, data, *args, **kwargs):
+    def __init__(self, experiment, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        FlightBoardFrame.DATA = data
-        FlightBoardFrame.MAX_PAGES = len(self.DATA) // 3 + int(len(self.DATA) % 3 != 0)
+        self.data = experiment.flight_board
+        self.max_pages = len(self.data) // self.PAGE_SIZE + int(len(self.data) % self.PAGE_SIZE != 0)
         self.page_idx = 0
-        self.page = PageFrame(data=self.DATA[3 * self.page_idx : 3 * self.page_idx + 3], master=self, background='#C7C4C4')
+        self.page = PageFrame(data=self.data[self.PAGE_SIZE * self.page_idx : self.PAGE_SIZE * self.page_idx + self.PAGE_SIZE], master=self, background='#C7C4C4')
         self.image_forward = tk.PhotoImage(file='build/assets/next.png')
         self.image_backward = tk.PhotoImage(file='build/assets/back.png')
         self.next = tk.Button(self, image=self.image_forward, command=self._next, background='#C7C4C4')
         self.prev = tk.Button(self, image=self.image_backward, command=self._prev, background='#C7C4C4')
     
     def _next(self):
-        if self.page_idx == self.MAX_PAGES - 1:
+        if self.page_idx == self.max_pages - 1:
             return
-
-        self.page.place_forget()
         self.page_idx += 1
-        self.page = PageFrame(
-            data=self.DATA[3 * self.page_idx : 3 * self.page_idx + 3],
-            master=self,
-            background='#C7C4C4'
-        )
-        self.page.place(width=274, height=219, x=41, y=89)
+        self.place_forget()
+        self.place(x=538, y=127, width=356, height=356)
     
     def _prev(self):
         if self.page_idx == 0:
             return
-
-        self.page.place_forget()
         self.page_idx -= 1
+        self.place_forget()
+        self.place(x=538, y=127, width=356, height=356)
+    
+    def update_page(self):
         self.page = PageFrame(
-            data=self.DATA[3 * self.page_idx : 3 * self.page_idx + 3],
+            data=self.data[self.PAGE_SIZE * self.page_idx : self.PAGE_SIZE * self.page_idx + self.PAGE_SIZE],
             master=self,
             background='#C7C4C4'
         )
-        self.page.place(width=274, height=219, x=41, y=89)
-    
+
     def place(self, *args, **kwargs):
         super().place(*args, **kwargs)
-        self.page.place(width=274, height=219, x=41, y=89)
+        self.update_page()
+        self.page.place(x=41, y=89)
         self.prev.place(x=147, y=322)
         self.next.place(x=177, y=322)
 
 
 class GUI(Tk):
-    def __init__(self, title, size, background, experiment, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.title(title)
-        self.geometry(f'{size[0]}x{size[1]}')
-        self['background'] = background
-        self.experiment = experiment
+        self.title('Program')
+        self.geometry('950x540')
+        self['background'] = '#E3E1E1'
         self.protocol('WM_DELETE_WINDOW', self.on_exit)
-
         self.top_frame = tk.Frame(self, background='#999999')
         self.img = ImageTk.PhotoImage(Image.open("build/assets/frame0/image_4.png"))
         self.label = tk.Label(
@@ -234,6 +230,43 @@ class GUI(Tk):
             font='Regular 24 bold',
             background='#999999'
         )
+        self.init_frame = tk.Frame(self, background='#C7C4C4')
+        self.n_runways_value = tk.StringVar(self, value='Кол-во полос')
+        self.n_runways = tk.Entry(self.init_frame, textvariable=self.n_runways_value, justify='center', font='Inter 8')
+        self.n_runways_flag = True
+        self.n_runways.bind("<Button-1>", self.delete_runways_text)
+        self.step_value = tk.StringVar(self, value='Шаг моделирования (мин)')
+        self.step = tk.Entry(self.init_frame, textvariable=self.step_value, justify='center', font='Inter 6')
+        self.step_flag = True
+        self.step.bind("<Button-1>", self.delete_step_text)
+        self.apply_button = tk.Button(self.init_frame, text='Применить', command=self.apply, font='Inter 8')
+        self.image_restart = tk.PhotoImage(file='build/assets/restart.png')
+        self.restart_button = tk.Button(self, image=self.image_restart, command=self.restart)
+        self.image_rewind = tk.PhotoImage(file='build/assets/rewind.png')
+        self.rewind_button = tk.Button(self, image=self.image_rewind, command=self.rewind)
+        self.make = tk.Button(
+            self,
+            text='Сделать шаг',
+            background='#D9D9D9',
+            command=self.tick
+        )
+
+    def rewind(self):
+        self.rewind_button['state'] = 'disabled'
+        self.tick(force=True)
+
+    def delete_runways_text(self, _):
+        if self.n_runways_flag:
+            self.n_runways.delete(0, tk.END)
+            self.n_runways_flag = False
+
+    def delete_step_text(self, _):
+        if self.step_flag:
+            self.step.delete(0, tk.END)
+            self.step_flag = False
+
+    def apply(self):
+        self.experiment = Experiment(n_runways=int(self.n_runways_value.get()), step=int(self.step_value.get()))
         self.time_var = tk.IntVar(self, value=ticks_to_time(self.experiment.ticks))
         self.time = tk.Label(
             self.top_frame,
@@ -245,44 +278,71 @@ class GUI(Tk):
         )
         self.box_right = StatsFrame(
             master=self,
-            runways=self.experiment.handler.runways,
+            experiment=self.experiment,
             title='Статистика',
             background='#C7C4C4'
         )
         self.box_left = FlightBoardFrame(
             master=self,
-            data=self.experiment.flight_board,
+            experiment=self.experiment,
             title='Расписание',
-            background='#C7C4C4'
+            background='#C7C4C4'  
         )
-        self.button_img = ImageTk.PhotoImage(Image.open('build/assets/frame0/button_1.png'))
-        self.make = tk.Button(
-            self,
-            image=self.button_img,
-            background='#D9D9D9',
-            command=self.tick
-        )
-        self.make_label = tk.Label(self.make, text='Сделать шаг', font='Regular 7')
+        self._place_init_forget()
+        self._place()
 
-    def tick(self):
-        plt.close()
-        self.experiment()
+    def tick(self, force=False):
+        self.experiment(force)
         self.time_var.set(ticks_to_time(self.experiment.ticks))
-        self.box_right.place_stats_forget()
         self.box_right.place_stats()
+        self.box_left.place(x=538, y=127, width=356, height=356)
+        if self.experiment.over:
+            self.make['state'] = self.rewind_button['state'] = 'disabled' 
 
     def on_exit(self):
-        plt.close()
+        plt.close('all')
         self.destroy()
 
+    def restart(self):
+        self.make['state'] = self.rewind_button['state'] = 'active'
+        self.n_runways_flag = True
+        self.step_flag = True
+        self.n_runways_value.set('Кол-во полос')
+        self.step_value.set('Шаг моделирования (мин)')
+        self._place_forget()
+        self._place_init()
+
     def run(self):
+        self._place_init()
+        self.mainloop()
+
+    def _place_init(self):
         self.top_frame.place(x=0, y=0, width=960, height=85)
         self.label.place(x=79, y=0)
         self.title.place(x=180, y=21)
+        self.init_frame.place(relx=0.5, rely=0.5, width=274, height=220, anchor='center')
+        self.n_runways.place(width=135, height=28, x=73, y=60)
+        self.step.place(width=135, height=28, x=73, y=110)
+        self.apply_button.place(width=75, height=28, x=103, y=171)
+
+    def _place_init_forget(self):
+        self.init_frame.place_forget()
+        self.n_runways.place_forget()
+        self.step.place_forget()
+        self.apply_button.place_forget()
+
+    def _place(self):
         self.time.place(x=739, y=21, width=138, height=47)
         self.box_right.place(x=66, y=127, width=356, height=356)
         self.box_left.place(x=538, y=127, width=356, height=356)
-        self.make.place(x=413, y=486)
-        self.make_label.place(x=35, y=10)
+        self.make.place(x=421, y=486)
+        self.restart_button.place(x=874, y=486, width=20, height=20)
+        self.rewind_button.place(x=854, y=486, width=20, height=20)
 
-        self.mainloop()
+    def _place_forget(self):
+        self.time.place_forget()
+        self.box_right.place_forget()
+        self.box_left.place_forget()
+        self.make.place_forget()
+        self.restart_button.place_forget()
+        self.rewind_button.place_forget()
