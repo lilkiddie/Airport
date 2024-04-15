@@ -1,3 +1,3 @@
 # Airport
 
-# Запуск программы: python main.py
+Запуск программы: python main.py
